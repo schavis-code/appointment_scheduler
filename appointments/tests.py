@@ -125,6 +125,7 @@ class AppointmentViewTests(TestCase):
         }
 
         self.assertEqual(context["selected_date"], "20100101")
+        self.assertEqual(context["start_times_available_count"], 15)
         self.assertTrue(slots["12:00"]["is_blocked"])
         self.assertFalse(slots["13:00"]["is_blocked"])
 
@@ -135,6 +136,37 @@ class AppointmentViewTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, reverse("index"))
         self.assertEqual(Appointment.objects.count(), 0)
+
+    @patch("django.utils.timezone.now")
+    def test_create_post_reduces_available_start_times(self, mock_now):
+        "Test creating an appointment reduces the available start time count."
+        mock_now.return_value = FAKE_NOW
+        context = self.get_index_context(
+            service_id=SERVICE_HAIRCUT,
+            hairdresser_id=HAIRDRESSER_1,
+            date_string="20100101",
+        )
+        available_before = context["start_times_available_count"]
+
+        self.client.post(
+            reverse("create"),
+            {
+                "service": SERVICE_HAIRCUT,
+                "hairdresser": HAIRDRESSER_1,
+                "date": "20100101",
+                "appointment_time": "12:00",
+                "customer_contact": "+49123456789",
+            },
+        )
+
+        context = self.get_index_context(
+            service_id=SERVICE_HAIRCUT,
+            hairdresser_id=HAIRDRESSER_1,
+            date_string="20100101",
+        )
+        available_after = context["start_times_available_count"]
+
+        self.assertLess(available_after, available_before)
 
     def test_create_post_creates_appointment(self):
         "Test POST requests create an appointment."

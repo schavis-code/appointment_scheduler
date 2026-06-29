@@ -78,6 +78,9 @@ def index(request, service_id=None, hairdresser_id=None, date_string=None):
                 )
 
                 context["start_times_all"] = start_times
+                context["start_times_available_count"] = sum(
+                    1 for start_time in start_times if not start_time["is_blocked"]
+                )
 
     return render(request, "appointments/index.html", context)
 
