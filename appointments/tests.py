@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from unittest.mock import patch
 
+from botocore.exceptions import BotoCoreError
 from django.http import HttpResponse
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
@@ -16,12 +17,53 @@ HAIRDRESSER_1 = 1
 FAKE_NOW = datetime(2010, 1, 1, 8, 0, tzinfo=ZoneInfo("America/Los_Angeles"))
 
 
+class AnnouncementTests(TestCase):
+    "Tests for loading announcement messages from DynamoDB."
+
+    @patch("appointments.views.boto3.client")
+    def test_get_announcements_reads_dynamodb_items(self, mock_boto_client):
+        "Test announcements are read from DynamoDB."
+        mock_dynamodb = mock_boto_client.return_value
+        mock_dynamodb.scan.return_value = {
+            "Items": [
+                {"Contents": {"S": "We are open late today."}},
+                {"Contents": {"S": "Walk-ins welcome."}},
+                {"Contents": {"S": ""}},
+                {},
+            ]
+        }
+
+        announcements = views.get_announcements()
+
+        self.assertEqual(
+            announcements,
+            ["We are open late today.", "Walk-ins welcome."],
+        )
+        mock_dynamodb.scan.assert_called_once_with(TableName="DEV_Announcement")
+
+    @patch("appointments.views.boto3.client")
+    def test_get_announcements_returns_empty_list_when_dynamodb_fails(
+        self, mock_boto_client
+    ):
+        "Test DynamoDB errors do not break the page."
+        mock_boto_client.side_effect = BotoCoreError()
+
+        announcements = views.get_announcements()
+
+        self.assertEqual(announcements, [])
+
+
 class AppointmentViewTests(TestCase):
     "Tests for appointment views and scheduling helpers"
 
     def setUp(self):
         "Create a request factory for direct view calls."
         self.factory = RequestFactory()
+        self.announcements_patch = patch(
+            "appointments.views.get_announcements", return_value=[]
+        )
+        self.announcements_patch.start()
+        self.addCleanup(self.announcements_patch.stop)
 
     def get_index_context(self, service_id=None, hairdresser_id=None, date_string=None):
         "Return the context passed to the index template."

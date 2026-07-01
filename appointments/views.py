@@ -1,5 +1,9 @@
 "Appointment booking view"
 import datetime
+
+import boto3
+from botocore.config import Config
+from botocore.exceptions import BotoCoreError, ClientError
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
@@ -7,6 +11,31 @@ from django.contrib import messages
 from django.utils import timezone
 
 from .models import Service, Hairdresser, Appointment
+
+ANNOUNCEMENTS_TABLE = "DEV_Announcement"
+
+
+def get_announcements():
+    "Return announcement messages from DynamoDB, or an empty list if unavailable."
+    try:
+        dynamodb = boto3.client(
+            "dynamodb",
+            config=Config(
+                connect_timeout=1,
+                read_timeout=1,
+                retries={"max_attempts": 1},
+            ),
+        )
+        announcements = dynamodb.scan(TableName=ANNOUNCEMENTS_TABLE)
+    except (BotoCoreError, ClientError):
+        return []
+
+    return [
+        item["Contents"]["S"]
+        for item in announcements.get("Items", [])
+        if item.get("Contents", {}).get("S")
+    ]
+
 
 def intervals_overlap(startime_1, end1, startime_2, end2):
     "Check if one interval starts after the other one ends"
@@ -38,6 +67,8 @@ def index(request, service_id=None, hairdresser_id=None, date_string=None):
     "View for selecting service, hairdresser, date and time"
     services = Service.objects.all()
     context = {"services_all": services}
+
+    context["announcements"] = get_announcements()
 
     if service_id:
         context["selected_service_id"] = service_id
