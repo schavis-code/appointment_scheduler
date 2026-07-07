@@ -22,15 +22,15 @@
     <div class="row row-cols-1 row-cols-md-3 mb-3 text-center">
         {% for service in services_all %}
         <div class="col">
-            <div class="card mb-4 rounded-3 shadow-sm {% if service.service_id == selected_service_id %}border-primary{% endif %}">
+            <div class="card mb-4 rounded-3 shadow-sm {% if service.id == selected_service_id %}border-primary{% endif %}">
                 <div class="card-body">
-                    <h3 class="card-title">{{service.service_name}}</h3>
+                    <h3 class="card-title">{{service.name}}</h3>
                     <ul class="list-unstyled mt-3 mb-4">
                         <li>{{service.description}}</li>
                         <li>${{service.price}}</li>
-                        <li>{{service.duration}} minutes</li>
+                        <li>{{service.duration_minutes}} minutes</li>
                       </ul>
-                    <a class="w-100 btn btn-lg {% if service.service_id == selected_service_id %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% relative_url 'index-service' service.service_id %}#hairdresser">Select</a>
+                    <a class="w-100 btn btn-lg {% if service.id == selected_service_id %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% relative_url 'index-service' service.id %}#hairdresser">Select</a>
                 </div>
             </div>
         </div>
@@ -43,11 +43,11 @@
     <div class="row row-cols-1 row-cols-md-3 mb-3 text-center">
         {% for hairdresser in hairdressers_all %}
         <div class="col">
-            <div class="card mb-4 rounded-3 shadow-sm {% if hairdresser.hairdresser_id == selected_hairdresser_id %}border-primary{% endif %}">
+            <div class="card mb-4 rounded-3 shadow-sm {% if hairdresser.id == selected_hairdresser_id %}border-primary{% endif %}">
                 <div class="card-body">
                     <h3 class="card-title">{{hairdresser.first_name}} {{hairdresser.last_name}}</h3>
                     <i class="bi bi-file-person" style="font-size: 4rem; "></i>
-                    <a class="w-100 btn btn-lg {% if hairdresser.hairdresser_id == selected_hairdresser_id %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% relative_url 'index-hairdresser' selected_service_id hairdresser.hairdresser_id %}#date">Select</a>
+                    <a class="w-100 btn btn-lg {% if hairdresser.id == selected_hairdresser_id %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% relative_url 'index-hairdresser' selected_service_id hairdresser.id %}#date">Select</a>
                 </div>
             </div>
         </div>
@@ -94,10 +94,23 @@
         </div>
 
         <div class="mb-3">
-        <label for="customer_contact" class="form-label">Contact details:</label>
-        <div class="input-group">
-            <textarea id="customer_contact" name="customer_contact" class="form-control" required></textarea>
+            <label for="customer_first_name" class="form-label">First name</label>
+            <input id="customer_first_name" name="customer_first_name" class="form-control" required>
         </div>
+
+        <div class="mb-3">
+            <label for="customer_last_name" class="form-label">Last name</label>
+            <input id="customer_last_name" name="customer_last_name" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="customer_email" class="form-label">Email</label>
+            <input id="customer_email" name="customer_email" class="form-control" type="email">
+        </div>
+
+        <div class="mb-3">
+            <label for="customer_phone" class="form-label">Phone</label>
+            <input id="customer_phone" name="customer_phone" class="form-control" type="tel">
         </div>
 
         <input type="submit" class="btn btn-primary" value="Confirm">

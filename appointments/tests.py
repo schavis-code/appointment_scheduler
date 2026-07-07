@@ -1,4 +1,5 @@
 "Unit tests for appointments"
+# pylint: disable=duplicate-code
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from unittest.mock import patch
@@ -10,7 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from . import views
-from .models import Appointment, Hairdresser, Service
+from .models import Appointment, Customer, Hairdresser, Service
 
 SERVICE_HAIRCUT = 1
 HAIRDRESSER_1 = 1
@@ -144,16 +145,23 @@ class AppointmentViewTests(TestCase):
     def test_index_date_step_blocks_booked_time(self, mock_now):
         "Test selected date start times exclude existing appointments."
         mock_now.return_value = FAKE_NOW
+        customer = Customer.objects.create(
+            first_name="Test",
+            last_name="Customer",
+            email="customer@example.com",
+        )
         service = Service.objects.get(pk=SERVICE_HAIRCUT)
         hairdresser = Hairdresser.objects.get(pk=HAIRDRESSER_1)
         start_datetime = timezone.make_aware(datetime(2010, 1, 1, 12, 0))
 
         Appointment.objects.create(
+            customer=customer,
             service=service,
             hairdresser=hairdresser,
-            start_datetime=start_datetime,
-            end_datetime=start_datetime + timedelta(minutes=service.duration),
-            customer_contact="+49123456789",
+            appointment_start=start_datetime,
+            appointment_end=start_datetime + timedelta(
+                minutes=service.duration_minutes
+            ),
         )
 
         context = self.get_index_context(
@@ -197,7 +205,10 @@ class AppointmentViewTests(TestCase):
                 "hairdresser": HAIRDRESSER_1,
                 "date": "20100101",
                 "appointment_time": "12:00",
-                "customer_contact": "+49123456789",
+                "customer_first_name": "Test",
+                "customer_last_name": "Customer",
+                "customer_email": "customer@example.com",
+                "customer_phone": "+49123456789",
             },
         )
 
@@ -219,7 +230,10 @@ class AppointmentViewTests(TestCase):
                 "hairdresser": HAIRDRESSER_1,
                 "date": "20100101",
                 "appointment_time": "12:00",
-                "customer_contact": "+49123456789",
+                "customer_first_name": "Test",
+                "customer_last_name": "Customer",
+                "customer_email": "customer@example.com",
+                "customer_phone": "+49123456789",
             },
         )
         appointment = Appointment.objects.get()
@@ -228,5 +242,8 @@ class AppointmentViewTests(TestCase):
         self.assertEqual(response.url, reverse("index"))
         self.assertEqual(appointment.service_id, SERVICE_HAIRCUT)
         self.assertEqual(appointment.hairdresser_id, HAIRDRESSER_1)
-        self.assertEqual(timezone.localtime(appointment.start_datetime).hour, 12)
-        self.assertEqual(appointment.customer_contact, "+49123456789")
+        self.assertEqual(timezone.localtime(appointment.appointment_start).hour, 12)
+        self.assertEqual(appointment.customer.first_name, "Test")
+        self.assertEqual(appointment.customer.last_name, "Customer")
+        self.assertEqual(appointment.customer.email, "customer@example.com")
+        self.assertEqual(appointment.customer.phone, "+49123456789")

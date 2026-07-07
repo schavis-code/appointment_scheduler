@@ -10,7 +10,7 @@ from django.urls import reverse
 from django.contrib import messages
 from django.utils import timezone
 
-from .models import Service, Hairdresser, Appointment
+from .models import Appointment, Customer, Hairdresser, Service
 
 ANNOUNCEMENTS_TABLE = "DEV_Announcement"
 
@@ -65,14 +65,14 @@ def build_start_times(day_start, service_duration, blocked_times):
 
 def index(request, service_id=None, hairdresser_id=None, date_string=None):
     "View for selecting service, hairdresser, date and time"
-    services = Service.objects.all()
+    services = Service.objects.filter(active=True)
     context = {"services_all": services}
 
     context["announcements"] = get_announcements()
 
     if service_id:
         context["selected_service_id"] = service_id
-        context["hairdressers_all"] = Hairdresser.objects.all()
+        context["hairdressers_all"] = Hairdresser.objects.filter(active=True)
 
         if hairdresser_id:
             context["selected_hairdresser_id"] = hairdresser_id
@@ -93,9 +93,9 @@ def index(request, service_id=None, hairdresser_id=None, date_string=None):
                     hairdresser__pk=hairdresser_id
                 )
                 blocked_times = [
-                    (appt.start_datetime, appt.end_datetime)
+                    (appt.appointment_start, appt.appointment_end)
                     for appt in appointments
-                    if appt.start_datetime.date() == parsed_datetime.date()
+                    if appt.appointment_start.date() == parsed_datetime.date()
                 ]
 
                 context["selected_date"] = date_string
@@ -103,7 +103,7 @@ def index(request, service_id=None, hairdresser_id=None, date_string=None):
                 day_start = parsed_datetime.replace(
                     hour=9, minute=0, second=0, microsecond=0
                 )
-                service_duration = Service.objects.get(service_id=service_id).duration
+                service_duration = Service.objects.get(pk=service_id).duration_minutes
                 start_times = build_start_times(
                     day_start, service_duration, blocked_times
                 )
@@ -122,23 +122,35 @@ def create(request):
         hairdresser_id = request.POST.get("hairdresser")
         date_string = request.POST.get("date")
         appointment_time = request.POST.get("appointment_time")
-        customer_contact = request.POST.get("customer_contact")
+        customer_first_name = request.POST.get("customer_first_name", "").strip()
+        customer_last_name = request.POST.get("customer_last_name", "").strip()
+        customer_email = request.POST.get("customer_email", "").strip()
+        customer_phone = request.POST.get("customer_phone", "").strip()
 
-        service = Service.objects.get(service_id=service_id)
-        hairdresser = Hairdresser.objects.get(hairdresser_id=hairdresser_id)
+        service = Service.objects.get(pk=service_id)
+        hairdresser = Hairdresser.objects.get(pk=hairdresser_id)
         start_datetime = timezone.make_aware(
             datetime.datetime.strptime(
                 date_string + " " + appointment_time, "%Y%m%d %H:%M"
             )
         )
-        end_datetime = start_datetime + datetime.timedelta(minutes=service.duration)
+        end_datetime = start_datetime + datetime.timedelta(
+            minutes=service.duration_minutes
+        )
+
+        customer = Customer.objects.create(
+            first_name=customer_first_name,
+            last_name=customer_last_name,
+            email=customer_email or None,
+            phone=customer_phone or None,
+        )
 
         Appointment.objects.create(
+            customer=customer,
             service=service,
             hairdresser=hairdresser,
-            start_datetime=start_datetime,
-            end_datetime=end_datetime,
-            customer_contact=customer_contact,
+            appointment_start=start_datetime,
+            appointment_end=end_datetime,
         )
         messages.info(request, "Your appointment has been created.")
 
