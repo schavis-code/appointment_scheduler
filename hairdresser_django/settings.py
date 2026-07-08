@@ -10,11 +10,31 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
-from pathlib import Path
 import os
+from pathlib import Path
+
+import boto3
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def get_bool_env(name, default=False):
+    "Return a boolean value from an environment variable."
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.lower() in {"1", "true", "yes", "on"}
+
+
+def build_rds_iam_auth_token(host, port, username):
+    "Build a short-lived IAM database authentication token for RDS MySQL."
+    return boto3.client("rds").generate_db_auth_token(
+        DBHostname=host,
+        Port=port,
+        DBUsername=username,
+        Region=os.environ.get("AWS_REGION", "us-east-2"),
+    )
 
 
 # Quick-start development settings - unsuitable for production
@@ -28,7 +48,12 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-CSRF_TRUSTED_ORIGINS = ['https://*.amazonaws.com', 'http://127.0.0.1', 'http://localhost', 'https://*.cloudfront.net/']
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.amazonaws.com',
+    'http://127.0.0.1',
+    'http://localhost',
+    'https://*.cloudfront.net',
+]
 
 
 # Application definition
@@ -77,12 +102,42 @@ WSGI_APPLICATION = 'hairdresser_django.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+if os.environ.get("DB_HOST"):
+    db_host = os.environ["DB_HOST"]
+    db_port = int(os.environ.get("DB_PORT", "3306"))
+    db_user = os.environ.get("DB_USER", "appointment_web_user")
+    db_password = os.environ.get("DB_PASSWORD", "")
+
+    if get_bool_env("DB_USE_IAM_AUTH", default=False):
+        db_password = build_rds_iam_auth_token(db_host, db_port, db_user)
+
+    db_options = {
+        "charset": "utf8mb4",
+        "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
     }
-}
+
+    db_ssl_ca = os.environ.get("DB_SSL_CA")
+    if get_bool_env("DB_REQUIRE_SSL", default=True):
+        db_options["ssl"] = {"ca": db_ssl_ca} if db_ssl_ca else {}
+
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": os.environ.get("DB_NAME", "appointments"),
+            "USER": db_user,
+            "PASSWORD": db_password,
+            "HOST": db_host,
+            "PORT": str(db_port),
+            "OPTIONS": db_options,
+        }
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
