@@ -13,8 +13,6 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 import os
 from pathlib import Path
 
-import boto3
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -25,16 +23,6 @@ def get_bool_env(name, default=False):
     if value is None:
         return default
     return value.lower() in {"1", "true", "yes", "on"}
-
-
-def build_rds_iam_auth_token(host, port, username):
-    "Build a short-lived IAM database authentication token for RDS MySQL."
-    return boto3.client("rds").generate_db_auth_token(
-        DBHostname=host,
-        Port=port,
-        DBUsername=username,
-        Region=os.environ.get("AWS_REGION", "us-east-2"),
-    )
 
 
 # Quick-start development settings - unsuitable for production
@@ -106,10 +94,10 @@ if os.environ.get("DB_HOST"):
     db_host = os.environ["DB_HOST"]
     db_port = int(os.environ.get("DB_PORT", "3306"))
     db_user = os.environ.get("DB_USER", "appointment_web_user")
-    db_password = os.environ.get("DB_PASSWORD", "")
+    db_use_iam_auth = get_bool_env("DB_USE_IAM_AUTH", default=True)
 
-    if get_bool_env("DB_USE_IAM_AUTH", default=False):
-        db_password = build_rds_iam_auth_token(db_host, db_port, db_user)
+    if db_use_iam_auth:
+        os.environ.setdefault("LIBMYSQL_ENABLE_CLEARTEXT_PLUGIN", "1")
 
     db_options = {
         "charset": "utf8mb4",
@@ -122,10 +110,14 @@ if os.environ.get("DB_HOST"):
 
     DATABASES = {
         "default": {
-            "ENGINE": "django.db.backends.mysql",
+            "ENGINE": (
+                "hairdresser_django.db.backends.mysql_iam"
+                if db_use_iam_auth
+                else "django.db.backends.mysql"
+            ),
             "NAME": os.environ.get("DB_NAME", "appointments"),
             "USER": db_user,
-            "PASSWORD": db_password,
+            "PASSWORD": os.environ.get("DB_PASSWORD", ""),
             "HOST": db_host,
             "PORT": str(db_port),
             "OPTIONS": db_options,

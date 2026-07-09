@@ -56,6 +56,26 @@ Database users:
 `appointment_web_user` - AWSAuthenticationPlugin - SELECT - INSERT -
 UPDATE - DELETE
 
+## Django RDS Connection
+
+Django connects to RDS MySQL through IAM database authentication by default
+whenever `DB_HOST` is set.
+
+Required runtime environment:
+
+-   `DB_HOST=appointment-scheduler-db.chkwukm2mwuq.us-east-2.rds.amazonaws.com`
+-   `DB_PORT=3306`
+-   `DB_NAME=appointments`
+-   `DB_USER=appointment_web_user`
+-   `AWS_REGION=us-east-2`
+
+Do not set `DB_PASSWORD` for the web application path. The custom Django
+backend `hairdresser_django.db.backends.mysql_iam` generates a fresh RDS IAM
+auth token for each new MySQL connection.
+
+`DB_USE_IAM_AUTH=false` exists only for exceptional admin or local
+troubleshooting workflows. Normal RDS application access should use IAM.
+
 ## Database Name
 
 `appointments`
