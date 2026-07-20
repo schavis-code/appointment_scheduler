@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: appointment-scheduler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: appointment-scheduler
+  template:
+    metadata:
+      labels:
+        app: appointment-scheduler
+    spec:
+      containers:
+        - name: appointment-scheduler
+          image: 471112960427.dkr.ecr.us-east-2.amazonaws.com/appointment-scheduler:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DB_HOST
+              value: appointment-scheduler-db.chkwukm2mwuq.us-east-2.rds.amazonaws.com
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_NAME
+              value: appointments
+            - name: DB_USER
+              value: appointment_web_user
+            - name: AWS_REGION
+              value: us-east-2
+            - name: DB_USE_IAM_AUTH
+              value: "true"
