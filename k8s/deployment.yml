@@ -12,6 +12,7 @@ spec:
       labels:
         app: appointment-scheduler
     spec:
+      serviceAccountName: appointment-scheduler-sa
       containers:
         - name: appointment-scheduler
           image: 471112960427.dkr.ecr.us-east-2.amazonaws.com/appointment-scheduler:latest
@@ -28,6 +29,8 @@ spec:
             - name: DB_USER
               value: appointment_web_user
             - name: AWS_REGION
+              value: us-east-2
+            - name: AWS_DEFAULT_REGION
               value: us-east-2
             - name: DB_USE_IAM_AUTH
               value: "true"

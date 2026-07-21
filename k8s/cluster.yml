@@ -1,0 +1,30 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: appointment-scheduler
+  region: us-east-2
+
+vpc:
+  id: vpc-03d566b20a99b4a75
+  subnets:
+    public:
+      us-east-2a:
+        id: subnet-02e9732a6467e9e33
+      us-east-2b:
+        id: subnet-034d5c060119babe0
+      us-east-2c:
+        id: subnet-0f45994f9465a0596
+
+managedNodeGroups:
+  - name: standard-workers
+    instanceType: t3.small
+    desiredCapacity: 1
+    minSize: 1
+    maxSize: 1
+
+# this cluster was designed specifically to keep cost very low
+# Creates EKS in the same VPC as RDS
+# Uses the existing public subnets
+# Creates one managed node group
+# Uses one t3.small node
