@@ -145,3 +145,7 @@ GitHub.sublime-settings
 .history
 
 
+
+# Local generated files
+beanstalk-source-bundle.zip
+db.sqlite3.backup
