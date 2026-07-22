@@ -10,3 +10,5 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 8000
+
+# Exposes the Django application to web traffic by creating an AWS LoadBalancer service.

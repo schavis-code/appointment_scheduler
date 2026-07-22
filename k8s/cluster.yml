@@ -23,6 +23,10 @@ managedNodeGroups:
     minSize: 1
     maxSize: 1
 
+
+# Defines the EKS cluster infrastructure: region, VPC/subnets, and worker node group.
+
+
 # this cluster was designed specifically to keep cost very low
 # Creates EKS in the same VPC as RDS
 # Uses the existing public subnets
