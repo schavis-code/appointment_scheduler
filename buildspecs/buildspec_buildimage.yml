@@ -29,3 +29,8 @@ phases:
       - docker push $IMAGE_REPO_URI:latest
       - echo Build completed on `date`
       - echo Image pushed to $IMAGE_REPO_URI:$IMAGE_TAG
+
+artifacts:
+  files:
+    - Dockerrun.aws.json
+    - .ebextensions/**/*
